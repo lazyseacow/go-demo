@@ -418,6 +418,122 @@ const docTemplate = `{
                 }
             }
         },
+        "/health": {
+            "get": {
+                "description": "检查系统和所有依赖服务的健康状态",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "系统"
+                ],
+                "summary": "健康检查",
+                "responses": {
+                    "200": {
+                        "description": "系统健康",
+                        "schema": {
+                            "$ref": "#/definitions/controllers.HealthResponse"
+                        }
+                    },
+                    "503": {
+                        "description": "系统异常",
+                        "schema": {
+                            "$ref": "#/definitions/controllers.HealthResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/live": {
+            "get": {
+                "description": "检查服务是否存活",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "系统"
+                ],
+                "summary": "存活检查",
+                "responses": {
+                    "200": {
+                        "description": "服务存活",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/ping": {
+            "get": {
+                "description": "返回简单的 pong 响应，用于快速检查服务是否在线",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "系统"
+                ],
+                "summary": "简单健康检查",
+                "responses": {
+                    "200": {
+                        "description": "服务在线",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/ready": {
+            "get": {
+                "description": "检查服务是否已准备好接收流量",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "系统"
+                ],
+                "summary": "就绪检查",
+                "responses": {
+                    "200": {
+                        "description": "服务就绪",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "503": {
+                        "description": "服务未就绪",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    }
+                }
+            }
+        },
         "/users": {
             "get": {
                 "security": [
@@ -648,6 +764,47 @@ const docTemplate = `{
         }
     },
     "definitions": {
+        "controllers.HealthResponse": {
+            "type": "object",
+            "properties": {
+                "services": {
+                    "description": "各服务状态",
+                    "type": "object",
+                    "additionalProperties": {
+                        "$ref": "#/definitions/controllers.ServiceStatus"
+                    }
+                },
+                "status": {
+                    "description": "healthy, degraded, unhealthy",
+                    "type": "string"
+                },
+                "timestamp": {
+                    "description": "时间戳",
+                    "type": "integer"
+                },
+                "version": {
+                    "description": "版本号",
+                    "type": "string"
+                }
+            }
+        },
+        "controllers.ServiceStatus": {
+            "type": "object",
+            "properties": {
+                "latency": {
+                    "description": "响应延迟",
+                    "type": "string"
+                },
+                "message": {
+                    "description": "状态描述",
+                    "type": "string"
+                },
+                "status": {
+                    "description": "healthy, unhealthy, unknown",
+                    "type": "string"
+                }
+            }
+        },
         "models.Article": {
             "type": "object",
             "required": [

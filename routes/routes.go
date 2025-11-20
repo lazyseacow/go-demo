@@ -12,6 +12,13 @@ func SetupRoutes(r *gin.Engine) {
 	authCtrl := controllers.NewAuthController()
 	userCtrl := controllers.NewUserController()
 	articleCtrl := controllers.NewArticleController()
+	healthCtrl := controllers.NewHealthController()
+
+	// 健康检查接口（无需认证，用于监控和 K8s 探针）
+	r.GET("/ping", healthCtrl.Ping)       // 简单健康检查
+	r.GET("/health", healthCtrl.Check)    // 完整健康检查（检查所有服务）
+	r.GET("/ready", healthCtrl.Ready)     // 就绪检查（Kubernetes readiness probe）
+	r.GET("/live", healthCtrl.Live)       // 存活检查（Kubernetes liveness probe）
 
 	// API v1 路由组
 	v1 := r.Group("/api/v1")
@@ -61,10 +68,4 @@ func SetupRoutes(r *gin.Engine) {
 		}
 	}
 
-	// 健康检查接口
-	r.GET("/ping", func(ctx *gin.Context) {
-		ctx.JSON(200, gin.H{
-			"message": "pong",
-		})
-	})
 }

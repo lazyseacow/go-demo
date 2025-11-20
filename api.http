@@ -6,8 +6,17 @@
 
 ### ====== 健康检查 ======
 
-### Ping 测试
+### Ping 测试（简单健康检查）
 GET {{baseURL}}/ping
+
+### 完整健康检查（检查所有服务）
+GET {{baseURL}}/health
+
+### 就绪检查（Kubernetes Readiness）
+GET {{baseURL}}/ready
+
+### 存活检查（Kubernetes Liveness）
+GET {{baseURL}}/live
 
 
 ### ====== 用户认证 ======

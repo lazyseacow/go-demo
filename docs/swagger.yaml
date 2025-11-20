@@ -1,5 +1,34 @@
 basePath: /api/v1
 definitions:
+  controllers.HealthResponse:
+    properties:
+      services:
+        additionalProperties:
+          $ref: '#/definitions/controllers.ServiceStatus'
+        description: 各服务状态
+        type: object
+      status:
+        description: healthy, degraded, unhealthy
+        type: string
+      timestamp:
+        description: 时间戳
+        type: integer
+      version:
+        description: 版本号
+        type: string
+    type: object
+  controllers.ServiceStatus:
+    properties:
+      latency:
+        description: 响应延迟
+        type: string
+      message:
+        description: 状态描述
+        type: string
+      status:
+        description: healthy, unhealthy, unknown
+        type: string
+    type: object
   models.Article:
     properties:
       author:
@@ -370,6 +399,82 @@ paths:
       summary: 获取当前用户信息
       tags:
       - 认证
+  /health:
+    get:
+      consumes:
+      - application/json
+      description: 检查系统和所有依赖服务的健康状态
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: 系统健康
+          schema:
+            $ref: '#/definitions/controllers.HealthResponse'
+        "503":
+          description: 系统异常
+          schema:
+            $ref: '#/definitions/controllers.HealthResponse'
+      summary: 健康检查
+      tags:
+      - 系统
+  /live:
+    get:
+      consumes:
+      - application/json
+      description: 检查服务是否存活
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: 服务存活
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: 存活检查
+      tags:
+      - 系统
+  /ping:
+    get:
+      consumes:
+      - application/json
+      description: 返回简单的 pong 响应，用于快速检查服务是否在线
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: 服务在线
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: 简单健康检查
+      tags:
+      - 系统
+  /ready:
+    get:
+      consumes:
+      - application/json
+      description: 检查服务是否已准备好接收流量
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: 服务就绪
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "503":
+          description: 服务未就绪
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: 就绪检查
+      tags:
+      - 系统
   /users:
     get:
       consumes:
