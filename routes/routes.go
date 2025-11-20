@@ -23,6 +23,12 @@ func SetupRoutes(r *gin.Engine) {
 	// API v1 路由组
 	v1 := r.Group("/api/v1")
 	{
+		// 健康检查接口别名（也可以通过 /api/v1 访问）
+		v1.GET("/ping", healthCtrl.Ping)
+		v1.GET("/health", healthCtrl.Check)
+		v1.GET("/ready", healthCtrl.Ready)
+		v1.GET("/live", healthCtrl.Live)
+
 		// 公开接口（不需要认证）
 		public := v1.Group("/auth")
 		{

@@ -99,8 +99,15 @@ func (ctrl *HealthController) Ping(ctx *gin.Context) {
 func (ctrl *HealthController) checkMySQL() ServiceStatus {
 	start := time.Now()
 
-	// 尝试执行简单查询
-	db := database.GetDB()
+	// 使用 defer + recover 捕获可能的 panic
+	defer func() {
+		if r := recover(); r != nil {
+			// 数据库未初始化时可能 panic
+		}
+	}()
+
+	// 直接访问 DB 变量，避免 panic
+	db := database.DB
 	if db == nil {
 		return ServiceStatus{
 			Status:  "unknown",
@@ -148,8 +155,15 @@ func (ctrl *HealthController) checkMySQL() ServiceStatus {
 func (ctrl *HealthController) checkMongoDB() ServiceStatus {
 	start := time.Now()
 
-	// 获取 MongoDB 客户端
-	client := database.GetMongoDB()
+	// 使用 defer + recover 捕获 panic
+	defer func() {
+		if r := recover(); r != nil {
+			// MongoDB 未初始化时会 panic，这里捕获
+		}
+	}()
+
+	// 直接访问 MongoDB 变量，避免 panic
+	client := database.MongoDB
 	if client == nil {
 		return ServiceStatus{
 			Status:  "unknown",
@@ -182,8 +196,15 @@ func (ctrl *HealthController) checkMongoDB() ServiceStatus {
 func (ctrl *HealthController) checkRedis() ServiceStatus {
 	start := time.Now()
 
-	// 获取 Redis 客户端
-	rdb := database.GetRedis()
+	// 使用 defer + recover 捕获可能的 panic
+	defer func() {
+		if r := recover(); r != nil {
+			// Redis 未初始化时可能 panic
+		}
+	}()
+
+	// 直接访问 RDB 变量，避免 panic
+	rdb := database.RDB
 	if rdb == nil {
 		return ServiceStatus{
 			Status:  "unknown",

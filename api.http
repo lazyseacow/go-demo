@@ -1,7 +1,7 @@
 ### API 测试文件 (可以使用 VS Code 的 REST Client 插件)
 
 ### 变量定义
-@baseURL = http://localhost:8080
+@baseURL = http://localhost:45613
 @token = your-token-here
 
 ### ====== 健康检查 ======
@@ -9,14 +9,28 @@
 ### Ping 测试（简单健康检查）
 GET {{baseURL}}/ping
 
-### 完整健康检查（检查所有服务）
+### 完整健康检查（检查所有服务：MySQL、Redis、MongoDB）
 GET {{baseURL}}/health
 
-### 就绪检查（Kubernetes Readiness）
+### 就绪检查（Kubernetes Readiness Probe）
 GET {{baseURL}}/ready
 
-### 存活检查（Kubernetes Liveness）
+### 存活检查（Kubernetes Liveness Probe）
 GET {{baseURL}}/live
+
+### ====== 健康检查（API v1 路径，同上） ======
+
+### Ping（v1 路径）
+GET {{baseURL}}/api/v1/ping
+
+### Health（v1 路径）
+GET {{baseURL}}/api/v1/health
+
+### Ready（v1 路径）
+GET {{baseURL}}/api/v1/ready
+
+### Live（v1 路径）
+GET {{baseURL}}/api/v1/live
 
 
 ### ====== 用户认证 ======
