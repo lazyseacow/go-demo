@@ -1,0 +1,110 @@
+### API 测试文件 (可以使用 VS Code 的 REST Client 插件)
+
+### 变量定义
+@baseURL = http://localhost:8080
+@token = your-token-here
+
+### ====== 健康检查 ======
+
+### Ping 测试
+GET {{baseURL}}/ping
+
+
+### ====== 用户认证 ======
+
+### 用户注册
+POST {{baseURL}}/api/v1/auth/register
+Content-Type: application/json
+
+{
+  "username": "testuser",
+  "password": "123456",
+  "email": "test@example.com"
+}
+
+### 用户登录
+POST {{baseURL}}/api/v1/auth/login
+Content-Type: application/json
+
+{
+  "username": "testuser",
+  "password": "123456"
+}
+
+### 用户登出
+POST {{baseURL}}/api/v1/auth/logout
+X-Token: {{token}}
+
+
+### ====== 用户信息 ======
+
+### 获取当前用户信息
+GET {{baseURL}}/api/v1/auth/user-info
+X-Token: {{token}}
+
+### 获取用户列表（分页）
+GET {{baseURL}}/api/v1/users?page=1&page_size=10
+X-Token: {{token}}
+
+### 获取指定用户
+GET {{baseURL}}/api/v1/users/1
+X-Token: {{token}}
+
+### 更新用户信息
+PUT {{baseURL}}/api/v1/users
+Content-Type: application/json
+X-Token: {{token}}
+
+{
+  "email": "newemail@example.com",
+  "phone": "13800138000",
+  "avatar": "https://example.com/avatar.jpg"
+}
+
+### 删除用户
+DELETE {{baseURL}}/api/v1/users/2
+X-Token: {{token}}
+
+
+### ====== 文章管理 (MongoDB 示例) ======
+
+### 获取文章列表（公开）
+GET {{baseURL}}/api/v1/articles?page=1&page_size=10
+
+### 搜索文章
+GET {{baseURL}}/api/v1/articles?keyword=测试&status=1
+
+### 获取文章详情（公开）
+GET {{baseURL}}/api/v1/articles/507f1f77bcf86cd799439011
+
+### 创建文章（需认证）
+POST {{baseURL}}/api/v1/articles
+Content-Type: application/json
+X-Token: {{token}}
+
+{
+  "title": "我的第一篇文章",
+  "content": "这是文章的内容，使用 MongoDB 存储。",
+  "tags": ["技术", "Go", "MongoDB"],
+  "status": 1
+}
+
+### 更新文章（需认证）
+PUT {{baseURL}}/api/v1/articles/507f1f77bcf86cd799439011
+Content-Type: application/json
+X-Token: {{token}}
+
+{
+  "title": "更新后的标题",
+  "content": "更新后的内容",
+  "tags": ["更新", "MongoDB"]
+}
+
+### 点赞文章（需认证）
+POST {{baseURL}}/api/v1/articles/507f1f77bcf86cd799439011/like
+X-Token: {{token}}
+
+### 删除文章（需认证）
+DELETE {{baseURL}}/api/v1/articles/507f1f77bcf86cd799439011
+X-Token: {{token}}
+

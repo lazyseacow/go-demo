@@ -1,0 +1,141 @@
+version: '3.8'
+
+services:
+  # Go 应用
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: go-demo-app
+    ports:
+      - "8080:8080"
+    environment:
+      - DB_PASSWORD=${DB_PASSWORD:-123456}
+      - MONGO_PASSWORD=${MONGO_PASSWORD:-123456}
+      - REDIS_PASSWORD=${REDIS_PASSWORD:-}
+      - JWT_SECRET=${JWT_SECRET:-your-secret-key}
+    depends_on:
+      mysql:
+        condition: service_healthy
+      mongodb:
+        condition: service_started
+      redis:
+        condition: service_started
+    networks:
+      - go-demo-network
+    restart: unless-stopped
+    volumes:
+      - ./config.yaml:/root/config.yaml
+      - ./logs:/root/logs
+
+  # MySQL 数据库
+  mysql:
+    image: mysql:8.0
+    container_name: go-demo-mysql
+    environment:
+      - MYSQL_ROOT_PASSWORD=${DB_PASSWORD:-123456}
+      - MYSQL_DATABASE=go_demo
+      - TZ=Asia/Shanghai
+    ports:
+      - "3306:3306"
+    volumes:
+      - mysql_data:/var/lib/mysql
+      - ./scripts/init.sql:/docker-entrypoint-initdb.d/init.sql
+    networks:
+      - go-demo-network
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-p${DB_PASSWORD:-123456}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+
+  # MongoDB 数据库
+  mongodb:
+    image: mongo:latest
+    container_name: go-demo-mongodb
+    environment:
+      - MONGO_INITDB_ROOT_USERNAME=admin
+      - MONGO_INITDB_ROOT_PASSWORD=${MONGO_PASSWORD:-123456}
+      - TZ=Asia/Shanghai
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongo_data:/data/db
+    networks:
+      - go-demo-network
+    restart: unless-stopped
+
+  # Redis 缓存
+  redis:
+    image: redis:7-alpine
+    container_name: go-demo-redis
+    command: >
+      sh -c "if [ -n \"$REDIS_PASSWORD\" ]; then
+        redis-server --requirepass \"$REDIS_PASSWORD\"
+      else
+        redis-server
+      fi"
+    environment:
+      - REDIS_PASSWORD=${REDIS_PASSWORD:-}
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    networks:
+      - go-demo-network
+    restart: unless-stopped
+
+  # phpMyAdmin（可选，用于管理 MySQL）
+  phpmyadmin:
+    image: phpmyadmin:latest
+    container_name: go-demo-phpmyadmin
+    environment:
+      - PMA_HOST=mysql
+      - PMA_PORT=3306
+      - PMA_USER=root
+      - PMA_PASSWORD=${DB_PASSWORD:-123456}
+    ports:
+      - "8081:80"
+    depends_on:
+      - mysql
+    networks:
+      - go-demo-network
+    restart: unless-stopped
+    profiles:
+      - tools  # 使用 --profile tools 启动
+
+  # Mongo Express（可选，用于管理 MongoDB）
+  mongo-express:
+    image: mongo-express:latest
+    container_name: go-demo-mongo-express
+    environment:
+      - ME_CONFIG_MONGODB_ADMINUSERNAME=admin
+      - ME_CONFIG_MONGODB_ADMINPASSWORD=${MONGO_PASSWORD:-123456}
+      - ME_CONFIG_MONGODB_URL=mongodb://admin:${MONGO_PASSWORD:-123456}@mongodb:27017/
+      - ME_CONFIG_BASICAUTH_USERNAME=admin
+      - ME_CONFIG_BASICAUTH_PASSWORD=${MONGO_PASSWORD:-123456}
+    ports:
+      - "8082:8081"
+    depends_on:
+      - mongodb
+    networks:
+      - go-demo-network
+    restart: unless-stopped
+    profiles:
+      - tools  # 使用 --profile tools 启动
+
+# 数据卷
+volumes:
+  mysql_data:
+    driver: local
+  mongo_data:
+    driver: local
+  redis_data:
+    driver: local
+
+# 网络
+networks:
+  go-demo-network:
+    driver: bridge
+
