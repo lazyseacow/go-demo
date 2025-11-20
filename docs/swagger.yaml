@@ -62,6 +62,25 @@ definitions:
     - content
     - title
     type: object
+  models.CreateArticleRequest:
+    properties:
+      content:
+        type: string
+      status:
+        description: 1:已发布 0:草稿
+        type: integer
+      tags:
+        items:
+          type: string
+        type: array
+      title:
+        maxLength: 200
+        minLength: 1
+        type: string
+    required:
+    - content
+    - title
+    type: object
   models.PageResponse:
     properties:
       list:
@@ -75,6 +94,21 @@ definitions:
       total:
         description: 总数
         type: integer
+    type: object
+  models.UpdateArticleRequest:
+    properties:
+      content:
+        type: string
+      status:
+        type: integer
+      tags:
+        items:
+          type: string
+        type: array
+      title:
+        maxLength: 200
+        minLength: 1
+        type: string
     type: object
   models.User:
     properties:
@@ -210,7 +244,7 @@ paths:
         name: request
         required: true
         schema:
-          $ref: '#/definitions/models.Article'
+          $ref: '#/definitions/models.CreateArticleRequest'
       produces:
       - application/json
       responses:
@@ -347,7 +381,7 @@ paths:
         name: request
         required: true
         schema:
-          type: object
+          $ref: '#/definitions/models.UpdateArticleRequest'
       produces:
       - application/json
       responses:
@@ -466,36 +500,6 @@ paths:
           schema:
             $ref: '#/definitions/utils.Response'
       summary: 用户注册
-      tags:
-      - 认证
-  /auth/user-info:
-    get:
-      consumes:
-      - application/json
-      description: 获取登录用户的详细信息
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: 获取成功
-          schema:
-            allOf:
-            - $ref: '#/definitions/utils.Response'
-            - properties:
-                data:
-                  $ref: '#/definitions/models.User'
-              type: object
-        "10005":
-          description: 需要登录
-          schema:
-            $ref: '#/definitions/utils.Response'
-        "11002":
-          description: 用户不存在
-          schema:
-            $ref: '#/definitions/utils.Response'
-      security:
-      - ApiKeyAuth: []
-      summary: 获取当前用户信息
       tags:
       - 认证
   /health:
@@ -683,6 +687,36 @@ paths:
       security:
       - ApiKeyAuth: []
       summary: 删除用户
+      tags:
+      - 用户管理
+  /users/me:
+    get:
+      consumes:
+      - application/json
+      description: 获取登录用户的详细信息
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: 获取成功
+          schema:
+            allOf:
+            - $ref: '#/definitions/utils.Response'
+            - properties:
+                data:
+                  $ref: '#/definitions/models.User'
+              type: object
+        "10005":
+          description: 需要登录
+          schema:
+            $ref: '#/definitions/utils.Response'
+        "11002":
+          description: 用户不存在
+          schema:
+            $ref: '#/definitions/utils.Response'
+      security:
+      - ApiKeyAuth: []
+      summary: 获取当前用户信息
       tags:
       - 用户管理
   /users/update:

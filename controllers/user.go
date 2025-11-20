@@ -91,6 +91,38 @@ func (ctrl *UserController) GetUserByID(ctx *gin.Context) {
 	utils.Success(ctx, user)
 }
 
+// GetCurrentUser 获取当前用户信息
+// @Summary      获取当前用户信息
+// @Description  获取登录用户的详细信息
+// @Tags         用户管理
+// @Accept       json
+// @Produce      json
+// @Security     ApiKeyAuth
+// @Success      200    {object}  utils.Response{data=models.User}  "获取成功"
+// @Failure      10005  {object}  utils.Response  "需要登录"
+// @Failure      11002  {object}  utils.Response  "用户不存在"
+// @Router       /users/me [get]
+func (ctrl *UserController) GetCurrentUser(ctx *gin.Context) {
+	userID := middleware.GetUserID(ctx)
+	if userID == 0 {
+		utils.Fail(ctx, common.CodeLoginRequired)
+		return
+	}
+
+	// 调用 Service 层获取用户信息
+	user, err := ctrl.userService.GetUserInfo(userID)
+	if err != nil {
+		if customErr, ok := err.(*common.CustomError); ok {
+			utils.Error(ctx, customErr)
+			return
+		}
+		utils.Fail(ctx, common.CodeInternalError, err.Error())
+		return
+	}
+
+	utils.Success(ctx, user, "获取成功")
+}
+
 // UpdateUser 更新用户信息
 // @Summary      更新用户信息
 // @Description  更新当前登录用户的个人信息

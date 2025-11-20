@@ -3,31 +3,20 @@ package service
 import (
 	"github.com/demo/common"
 	"github.com/demo/models"
-	"github.com/demo/repository"
 	"github.com/demo/utils"
 	"golang.org/x/crypto/bcrypt"
 	"gorm.io/gorm"
 )
 
-// UserService 用户服务
+// UserService 用户服务（直接使用 GORM，不通过 Repository 层）
 type UserService struct {
 	*BaseService
-	repo repository.UserRepositoryInterface
 }
 
 // NewUserService 创建用户服务实例
 func NewUserService() *UserService {
 	return &UserService{
 		BaseService: NewBaseService(),
-		repo:        repository.NewUserRepository(),
-	}
-}
-
-// NewUserServiceWithRepo 创建用户服务实例（用于测试）
-func NewUserServiceWithRepo(repo repository.UserRepositoryInterface) *UserService {
-	return &UserService{
-		BaseService: NewBaseService(),
-		repo:        repo,
 	}
 }
 
@@ -41,20 +30,19 @@ type RegisterRequest struct {
 // Register 用户注册
 func (s *UserService) Register(req RegisterRequest) (*models.User, error) {
 	// 检查用户名是否存在
-	exists, err := s.repo.ExistsByUsername(req.Username)
-	if err != nil {
+	var count int64
+	if err := s.DB.Model(&models.User{}).Where("username = ?", req.Username).Count(&count).Error; err != nil {
 		return nil, common.NewError(common.CodeDBQueryFailed, "查询用户失败")
 	}
-	if exists {
+	if count > 0 {
 		return nil, common.NewError(common.CodeUsernameExists)
 	}
 
 	// 检查邮箱是否存在
-	exists, err = s.repo.ExistsByEmail(req.Email)
-	if err != nil {
+	if err := s.DB.Model(&models.User{}).Where("email = ?", req.Email).Count(&count).Error; err != nil {
 		return nil, common.NewError(common.CodeDBQueryFailed, "查询邮箱失败")
 	}
-	if exists {
+	if count > 0 {
 		return nil, common.NewError(common.CodeEmailExists)
 	}
 
@@ -72,7 +60,7 @@ func (s *UserService) Register(req RegisterRequest) (*models.User, error) {
 		Status:   1,
 	}
 
-	if err := s.repo.Create(user); err != nil {
+	if err := s.DB.Create(user).Error; err != nil {
 		return nil, common.NewError(common.CodeDBInsertFailed, "创建用户失败")
 	}
 
@@ -94,8 +82,8 @@ type LoginResponse struct {
 // Login 用户登录
 func (s *UserService) Login(req LoginRequest) (*LoginResponse, error) {
 	// 查询用户
-	user, err := s.repo.FindByUsername(req.Username)
-	if err != nil {
+	var user models.User
+	if err := s.DB.Where("username = ?", req.Username).First(&user).Error; err != nil {
 		if err == gorm.ErrRecordNotFound {
 			return nil, common.NewError(common.CodeInvalidPassword)
 		}
@@ -120,21 +108,21 @@ func (s *UserService) Login(req LoginRequest) (*LoginResponse, error) {
 
 	return &LoginResponse{
 		Token:    token,
-		UserInfo: user,
+		UserInfo: &user,
 	}, nil
 }
 
 // GetUserInfo 获取用户信息
 func (s *UserService) GetUserInfo(userID int64) (*models.User, error) {
-	user, err := s.repo.FindByID(userID)
-	if err != nil {
+	var user models.User
+	if err := s.DB.First(&user, userID).Error; err != nil {
 		if err == gorm.ErrRecordNotFound {
 			return nil, common.NewError(common.CodeUserNotFound)
 		}
 		return nil, common.NewError(common.CodeDBQueryFailed, "查询用户失败")
 	}
 
-	return user, nil
+	return &user, nil
 }
 
 // GetUserList 获取用户列表
@@ -147,8 +135,17 @@ func (s *UserService) GetUserList(page, pageSize int) (*models.PageResponse, err
 		pageSize = 10
 	}
 
-	users, total, err := s.repo.List(page, pageSize)
-	if err != nil {
+	var users []models.User
+	var total int64
+
+	// 查询总数
+	if err := s.DB.Model(&models.User{}).Count(&total).Error; err != nil {
+		return nil, common.NewError(common.CodeDBQueryFailed, "查询用户列表失败")
+	}
+
+	// 分页查询
+	offset := (page - 1) * pageSize
+	if err := s.DB.Offset(offset).Limit(pageSize).Find(&users).Error; err != nil {
 		return nil, common.NewError(common.CodeDBQueryFailed, "查询用户列表失败")
 	}
 
@@ -162,15 +159,15 @@ func (s *UserService) GetUserList(page, pageSize int) (*models.PageResponse, err
 
 // GetUserByID 根据 ID 获取用户
 func (s *UserService) GetUserByID(id int64) (*models.User, error) {
-	user, err := s.repo.FindByID(id)
-	if err != nil {
+	var user models.User
+	if err := s.DB.First(&user, id).Error; err != nil {
 		if err == gorm.ErrRecordNotFound {
 			return nil, common.NewError(common.CodeUserNotFound)
 		}
 		return nil, common.NewError(common.CodeDBQueryFailed, "查询用户失败")
 	}
 
-	return user, nil
+	return &user, nil
 }
 
 // UpdateUserRequest 更新用户请求
@@ -198,7 +195,7 @@ func (s *UserService) UpdateUser(userID int64, req UpdateUserRequest) error {
 		return common.NewError(common.CodeParamInvalid, "没有需要更新的字段")
 	}
 
-	if err := s.repo.UpdateFields(userID, updates); err != nil {
+	if err := s.DB.Model(&models.User{}).Where("id = ?", userID).Updates(updates).Error; err != nil {
 		return common.NewError(common.CodeDBUpdateFailed, "更新用户失败")
 	}
 
@@ -213,16 +210,16 @@ func (s *UserService) DeleteUser(id, currentUserID int64) error {
 	}
 
 	// 检查用户是否存在
-	_, err := s.repo.FindByID(id)
-	if err != nil {
+	var user models.User
+	if err := s.DB.First(&user, id).Error; err != nil {
 		if err == gorm.ErrRecordNotFound {
 			return common.NewError(common.CodeUserNotFound)
 		}
 		return common.NewError(common.CodeDBQueryFailed, "查询用户失败")
 	}
 
-	// 删除用户
-	if err := s.repo.Delete(id); err != nil {
+	// 删除用户（软删除）
+	if err := s.DB.Delete(&user).Error; err != nil {
 		return common.NewError(common.CodeDBDeleteFailed, "删除用户失败")
 	}
 

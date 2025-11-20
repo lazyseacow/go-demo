@@ -9,10 +9,10 @@ import (
 // SetupRoutes 设置路由
 func SetupRoutes(r *gin.Engine) {
 	// 初始化控制器
+	healthCtrl := controllers.NewHealthController()
 	authCtrl := controllers.NewAuthController()
 	userCtrl := controllers.NewUserController()
 	articleCtrl := controllers.NewArticleController()
-	healthCtrl := controllers.NewHealthController()
 
 	// 健康检查接口（无需认证，用于监控和 K8s 探针）
 	r.GET("/ping", healthCtrl.Ping)    // 简单健康检查
@@ -23,12 +23,6 @@ func SetupRoutes(r *gin.Engine) {
 	// API v1 路由组
 	v1 := r.Group("/api/v1")
 	{
-		// 健康检查接口别名（也可以通过 /api/v1 访问）
-		v1.GET("/ping", healthCtrl.Ping)
-		v1.GET("/health", healthCtrl.Check)
-		v1.GET("/ready", healthCtrl.Ready)
-		v1.GET("/live", healthCtrl.Live)
-
 		// 公开接口（不需要认证）
 		public := v1.Group("/auth")
 		{
@@ -50,8 +44,7 @@ func SetupRoutes(r *gin.Engine) {
 			// 认证相关
 			auth := authorized.Group("/auth")
 			{
-				auth.POST("/logout", authCtrl.Logout)        // 登出
-				auth.GET("/user-info", authCtrl.GetUserInfo) // 获取当前用户信息
+				auth.POST("/logout", authCtrl.Logout) // 登出
 			}
 
 			// 用户管理
@@ -59,6 +52,7 @@ func SetupRoutes(r *gin.Engine) {
 			{
 				user.GET("", userCtrl.GetUserList)            // 获取用户列表
 				user.GET("/:id", userCtrl.GetUserByID)        // 获取指定用户
+				user.GET("/me", userCtrl.GetCurrentUser)      // 获取当前用户信息
 				user.POST("/update", userCtrl.UpdateUser)     // 更新用户信息
 				user.POST("/:id/delete", userCtrl.DeleteUser) // 删除用户
 			}

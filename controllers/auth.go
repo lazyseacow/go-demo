@@ -103,35 +103,3 @@ func (ctrl *AuthController) Logout(ctx *gin.Context) {
 	// TODO: 可以在 Redis 中维护一个 Token 黑名单
 	utils.Success(ctx, nil, "登出成功")
 }
-
-// GetUserInfo 获取当前用户信息
-// @Summary      获取当前用户信息
-// @Description  获取登录用户的详细信息
-// @Tags         认证
-// @Accept       json
-// @Produce      json
-// @Security     ApiKeyAuth
-// @Success      200    {object}  utils.Response{data=models.User}  "获取成功"
-// @Failure      10005  {object}  utils.Response  "需要登录"
-// @Failure      11002  {object}  utils.Response  "用户不存在"
-// @Router       /auth/user-info [get]
-func (ctrl *AuthController) GetUserInfo(ctx *gin.Context) {
-	userID, exists := ctx.Get("user_id")
-	if !exists {
-		utils.Fail(ctx, common.CodeLoginRequired)
-		return
-	}
-
-	// 调用 Service 层获取用户信息
-	user, err := ctrl.userService.GetUserInfo(userID.(int64))
-	if err != nil {
-		if customErr, ok := err.(*common.CustomError); ok {
-			utils.Error(ctx, customErr)
-			return
-		}
-		utils.Fail(ctx, common.CodeInternalError, err.Error())
-		return
-	}
-
-	utils.Success(ctx, user, "获取成功")
-}

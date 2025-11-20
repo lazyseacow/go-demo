@@ -2,7 +2,7 @@ package common
 
 // 错误码定义
 const (
-	// ==================== 通用错误码 (1000-1999) ====================
+	// CodeSuccess ==================== 通用错误码 (1000-1999) ====================
 	CodeSuccess          = 200 // 成功
 	CodeBadRequest       = 400 // 请求参数错误
 	CodeUnauthorized     = 401 // 未授权
@@ -14,14 +14,14 @@ const (
 	CodeInternalError    = 500 // 服务器内部错误
 	CodeServiceUnavail   = 503 // 服务不可用
 
-	// ==================== 认证相关错误码 (10000-10999) ====================
+	// CodeTokenMissing ==================== 认证相关错误码 (10000-10999) ====================
 	CodeTokenMissing   = 10001 // Token 缺失
 	CodeTokenInvalid   = 10002 // Token 无效
 	CodeTokenExpired   = 10003 // Token 已过期
 	CodeTokenGenFailed = 10004 // Token 生成失败
 	CodeLoginRequired  = 10005 // 需要登录
 
-	// ==================== 用户相关错误码 (11000-11999) ====================
+	// CodeUserExists ==================== 用户相关错误码 (11000-11999) ====================
 	CodeUserExists       = 11001 // 用户已存在
 	CodeUserNotFound     = 11002 // 用户不存在
 	CodeUsernameExists   = 11003 // 用户名已存在
@@ -33,7 +33,7 @@ const (
 	CodeUserDeleted      = 11009 // 账号已被删除
 	CodeCannotDeleteSelf = 11010 // 不能删除自己
 
-	// ==================== 文章相关错误码 (12000-12999) ====================
+	// CodeArticleNotFound ==================== 文章相关错误码 (12000-12999) ====================
 	CodeArticleNotFound   = 12001 // 文章不存在
 	CodeArticleExists     = 12002 // 文章已存在
 	CodeArticleCreateFail = 12003 // 文章创建失败
@@ -42,7 +42,7 @@ const (
 	CodeNoPermission      = 12006 // 没有权限操作
 	CodeInvalidArticleID  = 12007 // 无效的文章ID
 
-	// ==================== 数据库相关错误码 (13000-13999) ====================
+	// CodeDBError ==================== 数据库相关错误码 (13000-13999) ====================
 	CodeDBError         = 13001 // 数据库错误
 	CodeDBConnectFailed = 13002 // 数据库连接失败
 	CodeDBQueryFailed   = 13003 // 数据库查询失败
@@ -52,7 +52,7 @@ const (
 	CodeRedisError      = 13007 // Redis 错误
 	CodeMongoDBError    = 13008 // MongoDB 错误
 
-	// ==================== 参数验证错误码 (14000-14999) ====================
+	// CodeParamInvalid ==================== 参数验证错误码 (14000-14999) ====================
 	CodeParamInvalid      = 14001 // 参数无效
 	CodeParamMissing      = 14002 // 参数缺失
 	CodeParamTypeMismatch = 14003 // 参数类型错误
@@ -61,7 +61,7 @@ const (
 	CodeInvalidPhone      = 14006 // 手机号格式错误
 	CodeInvalidUsername   = 14007 // 用户名格式错误
 
-	// ==================== 业务逻辑错误码 (15000-15999) ====================
+	// CodeOperationFailed ==================== 业务逻辑错误码 (15000-15999) ====================
 	CodeOperationFailed = 15001 // 操作失败
 	CodeDataExists      = 15002 // 数据已存在
 	CodeDataNotFound    = 15003 // 数据不存在

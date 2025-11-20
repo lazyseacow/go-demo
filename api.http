@@ -112,6 +112,9 @@ X-Token: {{token}}
   "status": 1
 }
 
+# 注：不需要传 id、created_at、updated_at、author、user_id、views、likes
+# 这些字段由系统自动生成
+
 ### 更新文章（需认证）
 POST {{baseURL}}/api/v1/articles/507f1f77bcf86cd799439011/update
 Content-Type: application/json

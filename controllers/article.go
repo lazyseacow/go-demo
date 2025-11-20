@@ -3,43 +3,52 @@ package controllers
 import (
 	"context"
 	"net/http"
-	"time"
 
+	"github.com/demo/common"
 	"github.com/demo/database"
 	"github.com/demo/middleware"
 	"github.com/demo/models"
+	"github.com/demo/service"
 	"github.com/demo/utils"
 	"github.com/gin-gonic/gin"
 	"go.mongodb.org/mongo-driver/bson"
-	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/mongo/options"
 )
 
 type ArticleController struct {
 	*BaseController
+	articleService *service.ArticleService
 }
 
 func NewArticleController() *ArticleController {
 	return &ArticleController{
 		BaseController: NewBaseController(),
+		articleService: service.NewArticleService(),
 	}
 }
 
-// CreateArticle 创建文章（MongoDB 示例）
+// CreateArticle 创建文章
 // @Summary      创建文章
 // @Description  创建新文章（存储在 MongoDB）
 // @Tags         文章管理
 // @Accept       json
 // @Produce      json
 // @Security     ApiKeyAuth
-// @Param        request  body      models.Article  true  "文章内容"
+// @Param        request  body      models.CreateArticleRequest  true  "文章内容"
 // @Success      200      {object}  utils.Response{data=object{id=string}}  "创建成功"
 // @Failure      14001    {object}  utils.Response  "参数错误"
 // @Router       /articles [post]
 func (ctrl *ArticleController) CreateArticle(ctx *gin.Context) {
-	var req models.Article
+	// 检查 MongoDB 是否可用
+	if database.MongoDB == nil {
+		utils.Fail(ctx, http.StatusServiceUnavailable, "文章服务暂时不可用，请稍后再试")
+		return
+	}
+
+	// 使用专门的请求 DTO
+	var req models.CreateArticleRequest
 	if err := ctx.ShouldBindJSON(&req); err != nil {
-		utils.Fail(ctx, http.StatusBadRequest, "参数错误: "+err.Error())
+		utils.Fail(ctx, common.CodeParamInvalid, "参数错误: "+err.Error())
 		return
 	}
 
@@ -47,29 +56,19 @@ func (ctrl *ArticleController) CreateArticle(ctx *gin.Context) {
 	userID := middleware.GetUserID(ctx)
 	username := middleware.GetUsername(ctx)
 
-	// 设置文章信息
-	req.UserID = userID
-	req.Author = username
-	req.CreatedAt = time.Now()
-	req.UpdatedAt = time.Now()
-	req.Views = 0
-	req.Likes = 0
-	if req.Status == 0 {
-		req.Status = 1 // 默认已发布
-	}
-
-	// 获取 MongoDB 集合
-	collection := database.GetMongoCollection("articles")
-
-	// 插入文档
-	result, err := database.Mongo.InsertOne(context.Background(), collection, req)
+	// 调用 Service 层处理业务逻辑
+	article, err := ctrl.articleService.CreateArticle(req, userID, username)
 	if err != nil {
-		utils.Fail(ctx, http.StatusInternalServerError, "创建失败: "+err.Error())
+		if customErr, ok := err.(*common.CustomError); ok {
+			utils.Error(ctx, customErr)
+			return
+		}
+		utils.Fail(ctx, common.CodeInternalError, err.Error())
 		return
 	}
 
 	utils.Success(ctx, gin.H{
-		"id": result.InsertedID,
+		"id": article.ID.Hex(),
 	}, "创建成功")
 }
 
@@ -86,58 +85,30 @@ func (ctrl *ArticleController) CreateArticle(ctx *gin.Context) {
 // @Success      200        {object}  utils.Response{data=models.PageResponse}  "获取成功"
 // @Router       /articles [get]
 func (ctrl *ArticleController) GetArticleList(ctx *gin.Context) {
+	// 检查 MongoDB 是否可用
+	if database.MongoDB == nil {
+		utils.Fail(ctx, http.StatusServiceUnavailable, "文章服务暂时不可用，请稍后再试")
+		return
+	}
+
 	var req models.ArticleQueryRequest
 	if err := ctx.ShouldBindQuery(&req); err != nil {
 		req.Page = 1
 		req.PageSize = 10
 	}
 
-	// 构建查询条件
-	filter := bson.M{}
-
-	if req.Author != "" {
-		filter["author"] = req.Author
-	}
-	if req.Status > 0 {
-		filter["status"] = req.Status
-	}
-	if len(req.Tags) > 0 {
-		filter["tags"] = bson.M{"$in": req.Tags}
-	}
-	if req.Keyword != "" {
-		// 标题或内容包含关键词
-		filter["$or"] = []bson.M{
-			{"title": bson.M{"$regex": req.Keyword, "$options": "i"}},
-			{"content": bson.M{"$regex": req.Keyword, "$options": "i"}},
-		}
-	}
-
-	// 获取 MongoDB 集合
-	collection := database.GetMongoCollection("articles")
-
-	// 分页查询
-	var articles []models.Article
-	total, err := database.Mongo.Paginate(
-		context.Background(),
-		collection,
-		filter,
-		int64(req.Page),
-		int64(req.PageSize),
-		&articles,
-		bson.D{{Key: "created_at", Value: -1}}, // 按创建时间倒序
-	)
-
+	// 调用 Service 层处理业务逻辑
+	result, err := ctrl.articleService.GetArticleList(req)
 	if err != nil {
-		utils.Fail(ctx, http.StatusInternalServerError, "查询失败: "+err.Error())
+		if customErr, ok := err.(*common.CustomError); ok {
+			utils.Error(ctx, customErr)
+			return
+		}
+		utils.Fail(ctx, common.CodeInternalError, err.Error())
 		return
 	}
 
-	utils.Success(ctx, models.PageResponse{
-		Total:    total,
-		Page:     req.Page,
-		PageSize: req.PageSize,
-		List:     articles,
-	})
+	utils.Success(ctx, result)
 }
 
 // GetArticleByID 根据 ID 获取文章
@@ -152,29 +123,24 @@ func (ctrl *ArticleController) GetArticleList(ctx *gin.Context) {
 // @Failure      12001  {object}  utils.Response  "文章不存在"
 // @Router       /articles/{id} [get]
 func (ctrl *ArticleController) GetArticleByID(ctx *gin.Context) {
+	// 检查 MongoDB 是否可用
+	if database.MongoDB == nil {
+		utils.Fail(ctx, http.StatusServiceUnavailable, "文章服务暂时不可用，请稍后再试")
+		return
+	}
+
 	idStr := ctx.Param("id")
 
-	// 转换为 ObjectID
-	objectID, err := primitive.ObjectIDFromHex(idStr)
+	// 调用 Service 层处理业务逻辑
+	article, err := ctrl.articleService.GetArticleByID(idStr)
 	if err != nil {
-		utils.Fail(ctx, http.StatusBadRequest, "无效的文章 ID")
+		if customErr, ok := err.(*common.CustomError); ok {
+			utils.Error(ctx, customErr)
+			return
+		}
+		utils.Fail(ctx, common.CodeInternalError, err.Error())
 		return
 	}
-
-	// 获取 MongoDB 集合
-	collection := database.GetMongoCollection("articles")
-
-	// 查询文档
-	var article models.Article
-	filter := bson.M{"_id": objectID}
-	if err := database.Mongo.FindOne(context.Background(), collection, filter, &article); err != nil {
-		utils.Fail(ctx, http.StatusNotFound, "文章不存在")
-		return
-	}
-
-	// 增加浏览次数
-	update := bson.M{"$inc": bson.M{"views": 1}}
-	_, _ = database.Mongo.UpdateOne(context.Background(), collection, filter, update)
 
 	utils.Success(ctx, article)
 }
@@ -187,74 +153,37 @@ func (ctrl *ArticleController) GetArticleByID(ctx *gin.Context) {
 // @Produce      json
 // @Security     ApiKeyAuth
 // @Param        id       path      string  true  "文章ID"
-// @Param        request  body      object  true  "更新参数"
+// @Param        request  body      models.UpdateArticleRequest  true  "更新参数"
 // @Success      200      {object}  utils.Response  "更新成功"
 // @Failure      14001    {object}  utils.Response  "无效的文章 ID"
 // @Failure      12001    {object}  utils.Response  "文章不存在或无权限"
 // @Router       /articles/{id}/update [post]
 func (ctrl *ArticleController) UpdateArticle(ctx *gin.Context) {
-	idStr := ctx.Param("id")
-
-	// 转换为 ObjectID
-	objectID, err := primitive.ObjectIDFromHex(idStr)
-	if err != nil {
-		utils.Fail(ctx, http.StatusBadRequest, "无效的文章 ID")
+	// 检查 MongoDB 是否可用
+	if database.MongoDB == nil {
+		utils.Fail(ctx, http.StatusServiceUnavailable, "文章服务暂时不可用，请稍后再试")
 		return
 	}
 
-	var req struct {
-		Title   string   `json:"title" binding:"omitempty,min=1,max=200"`
-		Content string   `json:"content"`
-		Tags    []string `json:"tags"`
-		Status  int      `json:"status"`
-	}
+	idStr := ctx.Param("id")
 
+	// 使用专门的更新请求 DTO
+	var req models.UpdateArticleRequest
 	if err := ctx.ShouldBindJSON(&req); err != nil {
-		utils.Fail(ctx, http.StatusBadRequest, "参数错误: "+err.Error())
+		utils.Fail(ctx, common.CodeParamInvalid, "参数错误: "+err.Error())
 		return
 	}
 
 	// 获取当前用户 ID
 	userID := middleware.GetUserID(ctx)
 
-	// 获取 MongoDB 集合
-	collection := database.GetMongoCollection("articles")
-
-	// 检查文章是否属于当前用户
-	filter := bson.M{
-		"_id":     objectID,
-		"user_id": userID,
-	}
-
-	// 构建更新内容
-	update := bson.M{
-		"$set": bson.M{
-			"updated_at": time.Now(),
-		},
-	}
-
-	if req.Title != "" {
-		update["$set"].(bson.M)["title"] = req.Title
-	}
-	if req.Content != "" {
-		update["$set"].(bson.M)["content"] = req.Content
-	}
-	if len(req.Tags) > 0 {
-		update["$set"].(bson.M)["tags"] = req.Tags
-	}
-	if req.Status > 0 {
-		update["$set"].(bson.M)["status"] = req.Status
-	}
-
-	// 更新文档
-	result, err := database.Mongo.UpdateOne(context.Background(), collection, filter, update)
-	if err != nil {
-		utils.Fail(ctx, http.StatusInternalServerError, "更新失败: "+err.Error())
-		return
-	}
-
-	if result.MatchedCount == 0 {
-		utils.Fail(ctx, http.StatusNotFound, "文章不存在或无权限")
+	// 调用 Service 层处理业务逻辑
+	if err := ctrl.articleService.UpdateArticle(idStr, userID, req); err != nil {
+		if customErr, ok := err.(*common.CustomError); ok {
+			utils.Error(ctx, customErr)
+			return
+		}
+		utils.Fail(ctx, common.CodeInternalError, err.Error())
 		return
 	}
 
@@ -274,36 +203,24 @@ func (ctrl *ArticleController) UpdateArticle(ctx *gin.Context) {
 // @Failure      12001  {object}  utils.Response  "文章不存在或无权限"
 // @Router       /articles/{id}/delete [post]
 func (ctrl *ArticleController) DeleteArticle(ctx *gin.Context) {
-	idStr := ctx.Param("id")
-
-	// 转换为 ObjectID
-	objectID, err := primitive.ObjectIDFromHex(idStr)
-	if err != nil {
-		utils.Fail(ctx, http.StatusBadRequest, "无效的文章 ID")
+	// 检查 MongoDB 是否可用
+	if database.MongoDB == nil {
+		utils.Fail(ctx, http.StatusServiceUnavailable, "文章服务暂时不可用，请稍后再试")
 		return
 	}
+
+	idStr := ctx.Param("id")
 
 	// 获取当前用户 ID
 	userID := middleware.GetUserID(ctx)
 
-	// 获取 MongoDB 集合
-	collection := database.GetMongoCollection("articles")
-
-	// 只能删除自己的文章
-	filter := bson.M{
-		"_id":     objectID,
-		"user_id": userID,
-	}
-
-	// 删除文档
-	result, err := database.Mongo.DeleteOne(context.Background(), collection, filter)
-	if err != nil {
-		utils.Fail(ctx, http.StatusInternalServerError, "删除失败: "+err.Error())
-		return
-	}
-
-	if result.DeletedCount == 0 {
-		utils.Fail(ctx, http.StatusNotFound, "文章不存在或无权限")
+	// 调用 Service 层处理业务逻辑
+	if err := ctrl.articleService.DeleteArticle(idStr, userID); err != nil {
+		if customErr, ok := err.(*common.CustomError); ok {
+			utils.Error(ctx, customErr)
+			return
+		}
+		utils.Fail(ctx, common.CodeInternalError, err.Error())
 		return
 	}
 
@@ -323,30 +240,21 @@ func (ctrl *ArticleController) DeleteArticle(ctx *gin.Context) {
 // @Failure      12001  {object}  utils.Response  "文章不存在"
 // @Router       /articles/{id}/like [post]
 func (ctrl *ArticleController) LikeArticle(ctx *gin.Context) {
+	// 检查 MongoDB 是否可用
+	if database.MongoDB == nil {
+		utils.Fail(ctx, http.StatusServiceUnavailable, "文章服务暂时不可用，请稍后再试")
+		return
+	}
+
 	idStr := ctx.Param("id")
 
-	// 转换为 ObjectID
-	objectID, err := primitive.ObjectIDFromHex(idStr)
-	if err != nil {
-		utils.Fail(ctx, http.StatusBadRequest, "无效的文章 ID")
-		return
-	}
-
-	// 获取 MongoDB 集合
-	collection := database.GetMongoCollection("articles")
-
-	// 增加点赞数
-	filter := bson.M{"_id": objectID}
-	update := bson.M{"$inc": bson.M{"likes": 1}}
-
-	result, err := database.Mongo.UpdateOne(context.Background(), collection, filter, update)
-	if err != nil {
-		utils.Fail(ctx, http.StatusInternalServerError, "点赞失败: "+err.Error())
-		return
-	}
-
-	if result.MatchedCount == 0 {
-		utils.Fail(ctx, http.StatusNotFound, "文章不存在")
+	// 调用 Service 层处理业务逻辑
+	if err := ctrl.articleService.LikeArticle(idStr); err != nil {
+		if customErr, ok := err.(*common.CustomError); ok {
+			utils.Error(ctx, customErr)
+			return
+		}
+		utils.Fail(ctx, common.CodeInternalError, err.Error())
 		return
 	}
 
