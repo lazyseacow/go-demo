@@ -709,11 +709,10 @@ v1.POST("/products", productCtrl.Create)
 
 ## 📚 文档索引
 
-| 文档 | 说明 |
-|------|------|
+| 文档                                 | 说明           |
+|------------------------------------|--------------|
 | [docs/SWAGGER.md](docs/SWAGGER.md) | Swagger 使用说明 |
-| [FINAL_CHECKLIST.md](FINAL_CHECKLIST.md) | 项目检查清单 |
-| [api.http](api.http) | API 测试文件 |
+| [api.http](api.http)               | API 测试文件     |
 
 ---
 
