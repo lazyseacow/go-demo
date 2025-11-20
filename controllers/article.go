@@ -1,6 +1,7 @@
 package controllers
 
 import (
+	"sync"
 	"context"
 	"net/http"
 
@@ -15,16 +16,24 @@ import (
 	"go.mongodb.org/mongo-driver/mongo/options"
 )
 
+var (
+	_articleController *ArticleController
+	_onceNewArticleController sync.Once
+)
+
 type ArticleController struct {
 	*BaseController
 	articleService *service.ArticleService
 }
 
 func NewArticleController() *ArticleController {
-	return &ArticleController{
-		BaseController: NewBaseController(),
-		articleService: service.NewArticleService(),
-	}
+	_onceNewArticleController.Do(func() {
+		_articleController = &ArticleController{
+			BaseController: NewBaseController(),
+			articleService: service.NewArticleService(),
+		}
+	})
+	return _articleController
 }
 
 // CreateArticle 创建文章
