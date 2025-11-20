@@ -102,7 +102,7 @@ func (ctrl *UserController) GetUserByID(ctx *gin.Context) {
 // @Success      200      {object}  utils.Response  "更新成功"
 // @Failure      14001    {object}  utils.Response  "参数错误"
 // @Failure      10005    {object}  utils.Response  "需要登录"
-// @Router       /users [put]
+// @Router       /users/update [post]
 func (ctrl *UserController) UpdateUser(ctx *gin.Context) {
 	// 获取当前登录用户 ID
 	currentUserID := middleware.GetUserID(ctx)
@@ -142,7 +142,7 @@ func (ctrl *UserController) UpdateUser(ctx *gin.Context) {
 // @Failure      14001  {object}  utils.Response  "无效的用户 ID"
 // @Failure      11010  {object}  utils.Response  "不能删除自己"
 // @Failure      11002  {object}  utils.Response  "用户不存在"
-// @Router       /users/{id} [delete]
+// @Router       /users/{id}/delete [post]
 func (ctrl *UserController) DeleteUser(ctx *gin.Context) {
 	idStr := ctx.Param("id")
 	id, err := strconv.ParseInt(idStr, 10, 64)

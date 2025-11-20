@@ -74,7 +74,7 @@ GET {{baseURL}}/api/v1/users/1
 X-Token: {{token}}
 
 ### 更新用户信息
-PUT {{baseURL}}/api/v1/users
+POST {{baseURL}}/api/v1/users/update
 Content-Type: application/json
 X-Token: {{token}}
 
@@ -85,7 +85,7 @@ X-Token: {{token}}
 }
 
 ### 删除用户
-DELETE {{baseURL}}/api/v1/users/2
+POST {{baseURL}}/api/v1/users/2/delete
 X-Token: {{token}}
 
 
@@ -113,7 +113,7 @@ X-Token: {{token}}
 }
 
 ### 更新文章（需认证）
-PUT {{baseURL}}/api/v1/articles/507f1f77bcf86cd799439011
+POST {{baseURL}}/api/v1/articles/507f1f77bcf86cd799439011/update
 Content-Type: application/json
 X-Token: {{token}}
 
@@ -128,6 +128,6 @@ POST {{baseURL}}/api/v1/articles/507f1f77bcf86cd799439011/like
 X-Token: {{token}}
 
 ### 删除文章（需认证）
-DELETE {{baseURL}}/api/v1/articles/507f1f77bcf86cd799439011
+POST {{baseURL}}/api/v1/articles/507f1f77bcf86cd799439011/delete
 X-Token: {{token}}
 

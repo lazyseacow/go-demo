@@ -269,6 +269,105 @@ paths:
       summary: 获取文章详情
       tags:
       - 文章管理
+  /articles/{id}/delete:
+    post:
+      consumes:
+      - application/json
+      description: 删除指定文章
+      parameters:
+      - description: 文章ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: 删除成功
+          schema:
+            $ref: '#/definitions/utils.Response'
+        "12001":
+          description: 文章不存在或无权限
+          schema:
+            $ref: '#/definitions/utils.Response'
+        "14001":
+          description: 无效的文章 ID
+          schema:
+            $ref: '#/definitions/utils.Response'
+      security:
+      - ApiKeyAuth: []
+      summary: 删除文章
+      tags:
+      - 文章管理
+  /articles/{id}/like:
+    post:
+      consumes:
+      - application/json
+      description: 为指定文章点赞（点赞数+1）
+      parameters:
+      - description: 文章ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: 点赞成功
+          schema:
+            $ref: '#/definitions/utils.Response'
+        "12001":
+          description: 文章不存在
+          schema:
+            $ref: '#/definitions/utils.Response'
+        "14001":
+          description: 无效的文章 ID
+          schema:
+            $ref: '#/definitions/utils.Response'
+      security:
+      - ApiKeyAuth: []
+      summary: 点赞文章
+      tags:
+      - 文章管理
+  /articles/{id}/update:
+    post:
+      consumes:
+      - application/json
+      description: 更新指定文章的内容
+      parameters:
+      - description: 文章ID
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: 更新参数
+        in: body
+        name: request
+        required: true
+        schema:
+          type: object
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: 更新成功
+          schema:
+            $ref: '#/definitions/utils.Response'
+        "12001":
+          description: 文章不存在或无权限
+          schema:
+            $ref: '#/definitions/utils.Response'
+        "14001":
+          description: 无效的文章 ID
+          schema:
+            $ref: '#/definitions/utils.Response'
+      security:
+      - ApiKeyAuth: []
+      summary: 更新文章
+      tags:
+      - 文章管理
   /auth/login:
     post:
       consumes:
@@ -515,72 +614,7 @@ paths:
       summary: 获取用户列表
       tags:
       - 用户管理
-    put:
-      consumes:
-      - application/json
-      description: 更新当前登录用户的个人信息
-      parameters:
-      - description: 更新参数
-        in: body
-        name: request
-        required: true
-        schema:
-          $ref: '#/definitions/service.UpdateUserRequest'
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: 更新成功
-          schema:
-            $ref: '#/definitions/utils.Response'
-        "10005":
-          description: 需要登录
-          schema:
-            $ref: '#/definitions/utils.Response'
-        "14001":
-          description: 参数错误
-          schema:
-            $ref: '#/definitions/utils.Response'
-      security:
-      - ApiKeyAuth: []
-      summary: 更新用户信息
-      tags:
-      - 用户管理
   /users/{id}:
-    delete:
-      consumes:
-      - application/json
-      description: 删除指定用户（软删除，可恢复）
-      parameters:
-      - description: 用户ID
-        in: path
-        name: id
-        required: true
-        type: integer
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: 删除成功
-          schema:
-            $ref: '#/definitions/utils.Response'
-        "11002":
-          description: 用户不存在
-          schema:
-            $ref: '#/definitions/utils.Response'
-        "11010":
-          description: 不能删除自己
-          schema:
-            $ref: '#/definitions/utils.Response'
-        "14001":
-          description: 无效的用户 ID
-          schema:
-            $ref: '#/definitions/utils.Response'
-      security:
-      - ApiKeyAuth: []
-      summary: 删除用户
-      tags:
-      - 用户管理
     get:
       consumes:
       - application/json
@@ -614,6 +648,73 @@ paths:
       security:
       - ApiKeyAuth: []
       summary: 获取指定用户
+      tags:
+      - 用户管理
+  /users/{id}/delete:
+    post:
+      consumes:
+      - application/json
+      description: 删除指定用户（软删除，可恢复）
+      parameters:
+      - description: 用户ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: 删除成功
+          schema:
+            $ref: '#/definitions/utils.Response'
+        "11002":
+          description: 用户不存在
+          schema:
+            $ref: '#/definitions/utils.Response'
+        "11010":
+          description: 不能删除自己
+          schema:
+            $ref: '#/definitions/utils.Response'
+        "14001":
+          description: 无效的用户 ID
+          schema:
+            $ref: '#/definitions/utils.Response'
+      security:
+      - ApiKeyAuth: []
+      summary: 删除用户
+      tags:
+      - 用户管理
+  /users/update:
+    post:
+      consumes:
+      - application/json
+      description: 更新当前登录用户的个人信息
+      parameters:
+      - description: 更新参数
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/service.UpdateUserRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: 更新成功
+          schema:
+            $ref: '#/definitions/utils.Response'
+        "10005":
+          description: 需要登录
+          schema:
+            $ref: '#/definitions/utils.Response'
+        "14001":
+          description: 参数错误
+          schema:
+            $ref: '#/definitions/utils.Response'
+      security:
+      - ApiKeyAuth: []
+      summary: 更新用户信息
       tags:
       - 用户管理
 securityDefinitions:

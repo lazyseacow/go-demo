@@ -15,10 +15,10 @@ func SetupRoutes(r *gin.Engine) {
 	healthCtrl := controllers.NewHealthController()
 
 	// 健康检查接口（无需认证，用于监控和 K8s 探针）
-	r.GET("/ping", healthCtrl.Ping)       // 简单健康检查
-	r.GET("/health", healthCtrl.Check)    // 完整健康检查（检查所有服务）
-	r.GET("/ready", healthCtrl.Ready)     // 就绪检查（Kubernetes readiness probe）
-	r.GET("/live", healthCtrl.Live)       // 存活检查（Kubernetes liveness probe）
+	r.GET("/ping", healthCtrl.Ping)    // 简单健康检查
+	r.GET("/health", healthCtrl.Check) // 完整健康检查（检查所有服务）
+	r.GET("/ready", healthCtrl.Ready)  // 就绪检查（Kubernetes readiness probe）
+	r.GET("/live", healthCtrl.Live)    // 存活检查（Kubernetes liveness probe）
 
 	// API v1 路由组
 	v1 := r.Group("/api/v1")
@@ -57,19 +57,19 @@ func SetupRoutes(r *gin.Engine) {
 			// 用户管理
 			user := authorized.Group("/users")
 			{
-				user.GET("", userCtrl.GetUserList)       // 获取用户列表
-				user.GET("/:id", userCtrl.GetUserByID)   // 获取指定用户
-				user.PUT("", userCtrl.UpdateUser)        // 更新用户信息
-				user.DELETE("/:id", userCtrl.DeleteUser) // 删除用户
+				user.GET("", userCtrl.GetUserList)            // 获取用户列表
+				user.GET("/:id", userCtrl.GetUserByID)        // 获取指定用户
+				user.POST("/update", userCtrl.UpdateUser)     // 更新用户信息
+				user.POST("/:id/delete", userCtrl.DeleteUser) // 删除用户
 			}
 
 			// 文章管理（需要认证）
 			articles := authorized.Group("/articles")
 			{
-				articles.POST("", articleCtrl.CreateArticle)        // 创建文章
-				articles.PUT("/:id", articleCtrl.UpdateArticle)     // 更新文章
-				articles.DELETE("/:id", articleCtrl.DeleteArticle)  // 删除文章
-				articles.POST("/:id/like", articleCtrl.LikeArticle) // 点赞文章
+				articles.POST("", articleCtrl.CreateArticle)            // 创建文章
+				articles.POST("/:id/update", articleCtrl.UpdateArticle) // 更新文章
+				articles.POST("/:id/delete", articleCtrl.DeleteArticle) // 删除文章
+				articles.POST("/:id/like", articleCtrl.LikeArticle)     // 点赞文章
 			}
 		}
 	}

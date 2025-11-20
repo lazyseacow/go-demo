@@ -30,10 +30,10 @@ type ServiceStatus struct {
 
 // HealthResponse 健康检查响应
 type HealthResponse struct {
-	Status    string                    `json:"status"`    // healthy, degraded, unhealthy
-	Timestamp int64                     `json:"timestamp"` // 时间戳
-	Services  map[string]ServiceStatus  `json:"services"`  // 各服务状态
-	Version   string                    `json:"version"`   // 版本号
+	Status    string                   `json:"status"`    // healthy, degraded, unhealthy
+	Timestamp int64                    `json:"timestamp"` // 时间戳
+	Services  map[string]ServiceStatus `json:"services"`  // 各服务状态
+	Version   string                   `json:"version"`   // 版本号
 }
 
 // Check 健康检查
@@ -314,4 +314,3 @@ func (ctrl *HealthController) Live(ctx *gin.Context) {
 		"time":    time.Now().Unix(),
 	})
 }
-

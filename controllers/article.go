@@ -180,6 +180,18 @@ func (ctrl *ArticleController) GetArticleByID(ctx *gin.Context) {
 }
 
 // UpdateArticle 更新文章
+// @Summary      更新文章
+// @Description  更新指定文章的内容
+// @Tags         文章管理
+// @Accept       json
+// @Produce      json
+// @Security     ApiKeyAuth
+// @Param        id       path      string  true  "文章ID"
+// @Param        request  body      object  true  "更新参数"
+// @Success      200      {object}  utils.Response  "更新成功"
+// @Failure      14001    {object}  utils.Response  "无效的文章 ID"
+// @Failure      12001    {object}  utils.Response  "文章不存在或无权限"
+// @Router       /articles/{id}/update [post]
 func (ctrl *ArticleController) UpdateArticle(ctx *gin.Context) {
 	idStr := ctx.Param("id")
 
@@ -250,6 +262,17 @@ func (ctrl *ArticleController) UpdateArticle(ctx *gin.Context) {
 }
 
 // DeleteArticle 删除文章
+// @Summary      删除文章
+// @Description  删除指定文章
+// @Tags         文章管理
+// @Accept       json
+// @Produce      json
+// @Security     ApiKeyAuth
+// @Param        id   path      string  true  "文章ID"
+// @Success      200  {object}  utils.Response  "删除成功"
+// @Failure      14001  {object}  utils.Response  "无效的文章 ID"
+// @Failure      12001  {object}  utils.Response  "文章不存在或无权限"
+// @Router       /articles/{id}/delete [post]
 func (ctrl *ArticleController) DeleteArticle(ctx *gin.Context) {
 	idStr := ctx.Param("id")
 
@@ -288,6 +311,17 @@ func (ctrl *ArticleController) DeleteArticle(ctx *gin.Context) {
 }
 
 // LikeArticle 点赞文章
+// @Summary      点赞文章
+// @Description  为指定文章点赞（点赞数+1）
+// @Tags         文章管理
+// @Accept       json
+// @Produce      json
+// @Security     ApiKeyAuth
+// @Param        id   path      string  true  "文章ID"
+// @Success      200  {object}  utils.Response  "点赞成功"
+// @Failure      14001  {object}  utils.Response  "无效的文章 ID"
+// @Failure      12001  {object}  utils.Response  "文章不存在"
+// @Router       /articles/{id}/like [post]
 func (ctrl *ArticleController) LikeArticle(ctx *gin.Context) {
 	idStr := ctx.Param("id")
 

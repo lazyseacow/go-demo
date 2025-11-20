@@ -262,11 +262,11 @@ http://localhost:8080/swagger/index.html
 | GET | `/api/v1/auth/user-info` | 获取当前用户信息 |
 | GET | `/api/v1/users` | 获取用户列表（分页） |
 | GET | `/api/v1/users/:id` | 获取指定用户 |
-| PUT | `/api/v1/users` | 更新用户信息 |
-| DELETE | `/api/v1/users/:id` | 删除用户 |
+| POST | `/api/v1/users/update` | 更新用户信息 |
+| POST | `/api/v1/users/:id/delete` | 删除用户 |
 | POST | `/api/v1/articles` | 创建文章 |
-| PUT | `/api/v1/articles/:id` | 更新文章 |
-| DELETE | `/api/v1/articles/:id` | 删除文章 |
+| POST | `/api/v1/articles/:id/update` | 更新文章 |
+| POST | `/api/v1/articles/:id/delete` | 删除文章 |
 | POST | `/api/v1/articles/:id/like` | 点赞文章 |
 
 **使用 Token 的两种方式**:
