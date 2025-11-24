@@ -102,7 +102,6 @@ func main() {
 
 	// 12. 启动服务器（支持优雅关闭）
 	// startServer(r, cfg)
-
 	main1()
 }
 
@@ -158,54 +157,216 @@ func startServer(r *gin.Engine, cfg *config.Config) {
 	utils.LogInfo("✅ 服务器已优雅退出")
 }
 
+// Server 接口定义了服务器的基本行为
+// 任何实现了 ListenAndServe 和 Shutdown 方法的类型都可以被视为 Server
 type Server interface {
-	ListenAndServe() error
-	Shutdown() error
+	ListenAndServe() error // 启动服务器
+	Shutdown() error       // 关闭服务器
 }
 
+// ServerStarter 是一个服务器启动器结构体
+// 它使用了组合（composition）模式，内嵌了一个 Server 接口
+// 这样可以灵活地传入不同的 Server 实现
 type ServerStarter struct {
-	Server Server
+	Server Server // 持有一个 Server 接口类型的字段，实现了依赖注入
 }
 
+// ListenAndServe 是 ServerStarter 的方法
+// 它委托（delegate）给内部的 Server 来执行实际的启动操作
+// 这是装饰器模式的一种应用
 func (s *ServerStarter) ListenAndServe() error {
 	return s.Server.ListenAndServe()
 }
 
+// Shutdown 是 ServerStarter 的方法
+// 它委托给内部的 Server 来执行实际的关闭操作
 func (s *ServerStarter) Shutdown() error {
 	return s.Server.Shutdown()
 }
 
+// GinServer 代表一个使用 Gin 框架的服务器
+// 它是一个空结构体，因为这里只是演示，不需要存储状态
 type GinServer struct {
 }
 
+// ListenAndServe 实现了 Server 接口的 ListenAndServe 方法
+// 这使得 GinServer 成为了 Server 接口的一个实现
 func (g *GinServer) ListenAndServe() error {
 	fmt.Println("启动一个gin的服务")
 	return nil
 }
 
+// Shutdown 实现了 Server 接口的 Shutdown 方法
 func (g *GinServer) Shutdown() error {
 	fmt.Println("关闭一个gin的服务")
 	return nil
 }
 
+// NginxServer 代表一个 Nginx 服务器
+// 它也实现了 Server 接口
 type NginxServer struct {
 }
 
+// ListenAndServe 实现了 Server 接口的 ListenAndServe 方法
+// 这使得 NginxServer 也成为了 Server 接口的一个实现
 func (n *NginxServer) ListenAndServe() error {
 	fmt.Println("启动一个nginx的服务")
 	return nil
 }
 
+// Shutdown 实现了 Server 接口的 Shutdown 方法
 func (n *NginxServer) Shutdown() error {
 	fmt.Println("关闭一个nginx的服务")
 	return nil
 }
 
+// NativeHTTPServer 代表一个 Go 原生的 HTTP 服务器
+// 它使用 Go 标准库的 net/http 包实现
+// 相比 GinServer 和 NginxServer 的简单示例，这是一个完整的实现
+type NativeHTTPServer struct {
+	server *http.Server // 存储 http.Server 实例，用于实际的服务器管理
+	addr   string       // 监听地址，例如 ":8081"
+}
+
+// NewNativeHTTPServer 创建一个新的原生 HTTP 服务器实例
+// addr: 监听地址，格式如 ":8081" 或 "localhost:8081"
+// handler: HTTP 请求处理器，如果为 nil 则使用 http.DefaultServeMux
+func NewNativeHTTPServer(addr string, handler http.Handler) *NativeHTTPServer {
+	if handler == nil {
+		// 如果没有提供处理器，使用默认的多路复用器
+		handler = http.DefaultServeMux
+	}
+
+	return &NativeHTTPServer{
+		addr: addr,
+		server: &http.Server{
+			Addr:         addr,
+			Handler:      handler,
+			ReadTimeout:  10 * time.Second, // 设置读取超时
+			WriteTimeout: 10 * time.Second, // 设置写入超时
+			IdleTimeout:  60 * time.Second, // 设置空闲连接超时
+		},
+	}
+}
+
+// ListenAndServe 实现了 Server 接口的 ListenAndServe 方法
+// 启动原生 HTTP 服务器并开始监听请求
+// 这是一个阻塞调用，会一直运行直到服务器关闭
+func (n *NativeHTTPServer) ListenAndServe() error {
+	fmt.Printf("🚀 启动 Go 原生 HTTP 服务器，监听地址: %s\n", n.addr)
+
+	// 注册一个简单的测试路由
+	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
+		fmt.Fprintf(w, "Hello from Native HTTP Server! 🎉\n")
+		fmt.Fprintf(w, "Path: %s\n", r.URL.Path)
+		fmt.Fprintf(w, "Method: %s\n", r.Method)
+	})
+
+	http.HandleFunc("/health", func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusOK)
+		fmt.Fprintf(w, `{"status": "healthy", "server": "native-http"}`)
+	})
+
+	// 启动服务器（阻塞式调用）
+	if err := n.server.ListenAndServe(); err != nil && err != http.ErrServerClosed {
+		return fmt.Errorf("HTTP 服务器启动失败: %v", err)
+	}
+
+	return nil
+}
+
+// Shutdown 实现了 Server 接口的 Shutdown 方法
+// 优雅地关闭服务器，等待现有连接处理完成
+// 注意：这是一个阻塞调用，最多等待 5 秒
+func (n *NativeHTTPServer) Shutdown() error {
+	fmt.Println("⏳ 正在关闭 Go 原生 HTTP 服务器...")
+
+	// 创建一个带超时的上下文，给服务器 5 秒时间完成现有请求
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+
+	// 优雅关闭服务器
+	if err := n.server.Shutdown(ctx); err != nil {
+		return fmt.Errorf("HTTP 服务器关闭失败: %v", err)
+	}
+
+	fmt.Println("✅ Go 原生 HTTP 服务器已成功关闭")
+	return nil
+}
+
+// main1 演示了接口的多态性和组合模式的使用
+// 支持优雅关闭：按 Ctrl+C 触发关闭流程
 func main1() {
+	// 创建第一个启动器，注入 GinServer 实例
+	// 这里体现了依赖注入的思想：ServerStarter 不关心具体是什么服务器
 	starter1 := &ServerStarter{Server: &GinServer{}}
+
+	// 创建第二个启动器，注入 NginxServer 实例
+	// 同样的 ServerStarter 可以启动不同类型的服务器
 	starter2 := &ServerStarter{Server: &NginxServer{}}
-	starter1.ListenAndServe()
-	starter2.ListenAndServe()
-	starter1.Shutdown()
-	starter2.Shutdown()
+
+	// 创建第三个启动器，注入 NativeHTTPServer 实例
+	// 这是一个完整的 Go 原生 HTTP 服务器实现
+	// 参数说明：":8081" 是监听地址，nil 表示使用默认的路由处理器
+	nativeServer := NewNativeHTTPServer(":8081", nil)
+	starter3 := &ServerStarter{Server: nativeServer}
+
+	// 启动三个服务器，虽然调用的是相同的方法，但执行的是不同的实现
+	// 这展示了接口的强大之处：同一个接口，不同的实现
+	starter1.ListenAndServe() // 输出：启动一个gin的服务
+	starter2.ListenAndServe() // 输出：启动一个nginx的服务
+
+	// 演示：在 goroutine 中启动原生 HTTP 服务器
+	// 因为 ListenAndServe 是阻塞调用，我们需要在单独的 goroutine 中运行
+	go func() {
+		if err := starter3.ListenAndServe(); err != nil {
+			fmt.Printf("❌ 原生 HTTP 服务器错误: %v\n", err)
+		}
+	}()
+
+	// 等待 2 秒，让服务器完全启动
+	time.Sleep(2 * time.Second)
+	fmt.Println("\n✅ 所有服务器已启动！")
+	fmt.Println("📌 访问 http://localhost:8081 测试原生 HTTP 服务器")
+	fmt.Println("📌 访问 http://localhost:8081/health 查看健康状态")
+	fmt.Println("📌 按 Ctrl+C 可以优雅地关闭所有服务器")
+
+	// ========== 优雅关闭机制 ==========
+	// 创建一个信号通道，用于接收操作系统信号
+	quit := make(chan os.Signal, 1)
+
+	// 注册要监听的信号：
+	// - syscall.SIGINT: 中断信号（Ctrl+C）
+	// - syscall.SIGTERM: 终止信号（kill 命令默认信号）
+	// 当收到这些信号时，会发送到 quit 通道
+	signal.Notify(quit, syscall.SIGINT, syscall.SIGTERM)
+
+	// 阻塞等待关闭信号
+	// 程序会一直运行，直到收到 SIGINT 或 SIGTERM 信号
+	<-quit
+
+	// 收到关闭信号后，开始优雅关闭流程
+	fmt.Println("\n⏳ 收到关闭信号，开始优雅关闭所有服务器...")
+
+	// 按顺序关闭所有服务器
+	// 即使某个服务器关闭失败，也会继续关闭其他服务器
+	if err := starter1.Shutdown(); err != nil {
+		fmt.Printf("⚠️  关闭 GinServer 失败: %v\n", err)
+	}
+
+	if err := starter2.Shutdown(); err != nil {
+		fmt.Printf("⚠️  关闭 NginxServer 失败: %v\n", err)
+	}
+
+	if err := starter3.Shutdown(); err != nil {
+		fmt.Printf("⚠️  关闭 NativeHTTPServer 失败: %v\n", err)
+	}
+
+	fmt.Println("\n✅ 所有服务器已优雅关闭，程序退出")
+}
+
+func test(a, b, c int, d, e, f string) (aa, bb error) {
+	aa = fmt.Errorf("error")
+	bb = fmt.Errorf("error")
+	return aa, bb
 }
