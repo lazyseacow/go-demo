@@ -1,9 +1,9 @@
 package controllers
 
 import (
-	"sync"
 	"context"
 	"net/http"
+	"sync"
 
 	"github.com/demo/common"
 	"github.com/demo/database"
@@ -17,7 +17,7 @@ import (
 )
 
 var (
-	_articleController *ArticleController
+	_articleController        *ArticleController
 	_onceNewArticleController sync.Once
 )
 
@@ -68,11 +68,7 @@ func (ctrl *ArticleController) CreateArticle(ctx *gin.Context) {
 	// 调用 Service 层处理业务逻辑
 	article, err := ctrl.articleService.CreateArticle(req, userID, username)
 	if err != nil {
-		if customErr, ok := err.(*common.CustomError); ok {
-			utils.Error(ctx, customErr)
-			return
-		}
-		utils.Fail(ctx, common.CodeInternalError, err.Error())
+		utils.Error(ctx, err)
 		return
 	}
 
@@ -109,11 +105,7 @@ func (ctrl *ArticleController) GetArticleList(ctx *gin.Context) {
 	// 调用 Service 层处理业务逻辑
 	result, err := ctrl.articleService.GetArticleList(req)
 	if err != nil {
-		if customErr, ok := err.(*common.CustomError); ok {
-			utils.Error(ctx, customErr)
-			return
-		}
-		utils.Fail(ctx, common.CodeInternalError, err.Error())
+		utils.Error(ctx, err)
 		return
 	}
 
@@ -143,11 +135,7 @@ func (ctrl *ArticleController) GetArticleByID(ctx *gin.Context) {
 	// 调用 Service 层处理业务逻辑
 	article, err := ctrl.articleService.GetArticleByID(idStr)
 	if err != nil {
-		if customErr, ok := err.(*common.CustomError); ok {
-			utils.Error(ctx, customErr)
-			return
-		}
-		utils.Fail(ctx, common.CodeInternalError, err.Error())
+		utils.Error(ctx, err)
 		return
 	}
 
@@ -188,11 +176,7 @@ func (ctrl *ArticleController) UpdateArticle(ctx *gin.Context) {
 
 	// 调用 Service 层处理业务逻辑
 	if err := ctrl.articleService.UpdateArticle(idStr, userID, req); err != nil {
-		if customErr, ok := err.(*common.CustomError); ok {
-			utils.Error(ctx, customErr)
-			return
-		}
-		utils.Fail(ctx, common.CodeInternalError, err.Error())
+		utils.Error(ctx, err)
 		return
 	}
 
@@ -225,11 +209,7 @@ func (ctrl *ArticleController) DeleteArticle(ctx *gin.Context) {
 
 	// 调用 Service 层处理业务逻辑
 	if err := ctrl.articleService.DeleteArticle(idStr, userID); err != nil {
-		if customErr, ok := err.(*common.CustomError); ok {
-			utils.Error(ctx, customErr)
-			return
-		}
-		utils.Fail(ctx, common.CodeInternalError, err.Error())
+		utils.Error(ctx, err)
 		return
 	}
 
@@ -259,11 +239,7 @@ func (ctrl *ArticleController) LikeArticle(ctx *gin.Context) {
 
 	// 调用 Service 层处理业务逻辑
 	if err := ctrl.articleService.LikeArticle(idStr); err != nil {
-		if customErr, ok := err.(*common.CustomError); ok {
-			utils.Error(ctx, customErr)
-			return
-		}
-		utils.Fail(ctx, common.CodeInternalError, err.Error())
+		utils.Error(ctx, err)
 		return
 	}
 

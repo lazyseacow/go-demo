@@ -7,10 +7,28 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
+type CustomResponse interface {
+	GetCode() int
+	GetMsg() string
+	GetData() any
+}
+
 type Response struct {
 	Code int    `json:"code"`
 	Msg  string `json:"msg"`
 	Data any    `json:"data,omitempty"`
+}
+
+func (r *Response) GetCode() int {
+	return r.Code
+}
+
+func (r *Response) GetMsg() string {
+	return r.Msg
+}
+
+func (r *Response) GetData() any {
+	return r.Data
 }
 
 // Success 成功返回
@@ -20,7 +38,7 @@ func Success(ctx *gin.Context, data any, msg ...string) {
 		message = msg[0]
 	}
 
-	ctx.JSON(http.StatusOK, Response{
+	ToResponse(ctx, &Response{
 		Code: common.CodeSuccess,
 		Msg:  message,
 		Data: data,
@@ -34,7 +52,7 @@ func Fail(ctx *gin.Context, code int, msg ...string) {
 		message = msg[0]
 	}
 
-	ctx.JSON(http.StatusOK, Response{
+	ToResponse(ctx, &Response{
 		Code: code,
 		Msg:  message,
 	})
@@ -47,26 +65,37 @@ func FailWithData(ctx *gin.Context, code int, data any, msg ...string) {
 		message = msg[0]
 	}
 
-	ctx.JSON(http.StatusOK, Response{
+	ToResponse(ctx, &Response{
 		Code: code,
 		Msg:  message,
 		Data: data,
 	})
 }
 
-// Error 返回自定义错误
-func Error(ctx *gin.Context, err *common.CustomError) {
-	ctx.JSON(http.StatusOK, Response{
-		Code: err.Code,
-		Msg:  err.Message,
-		Data: err.Data,
-	})
+func Error(ctx *gin.Context, err error) {
+	if customErr, ok := err.(*common.CustomError); ok {
+		ToResponse(ctx, customErr)
+	} else {
+		ToResponse(ctx, &Response{
+			Code: common.CodeInternalError,
+			Msg:  "内部错误",
+			Data: nil,
+		})
+	}
 }
 
 // SuccessWithMsg 成功返回（自定义消息）
 func SuccessWithMsg(ctx *gin.Context, msg string) {
-	ctx.JSON(http.StatusOK, Response{
+	ToResponse(ctx, &Response{
 		Code: common.CodeSuccess,
 		Msg:  msg,
+	})
+}
+
+func ToResponse(ctx *gin.Context, vo CustomResponse) {
+	ctx.JSON(http.StatusOK, &Response{
+		Code: vo.GetCode(),
+		Msg:  vo.GetMsg(),
+		Data: vo.GetData(),
 	})
 }

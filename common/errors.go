@@ -1,5 +1,7 @@
 package common
 
+import "fmt"
+
 // 错误码定义
 const (
 	// CodeSuccess ==================== 通用错误码 (1000-1999) ====================
@@ -155,7 +157,19 @@ type CustomError struct {
 
 // Error 实现 error 接口
 func (e *CustomError) Error() string {
+	return fmt.Sprintf("code: %d, message: %s, data: %v", e.Code, e.Message, e.Data)
+}
+
+func (e *CustomError) GetCode() int {
+	return e.Code
+}
+
+func (e *CustomError) GetMsg() string {
 	return e.Message
+}
+
+func (e *CustomError) GetData() any {
+	return e.Data
 }
 
 // NewError 创建自定义错误
