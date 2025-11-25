@@ -169,18 +169,3 @@ func NewError(code int, message ...string) *CustomError {
 		Message: msg,
 	}
 }
-
-// NewErrorWithData 创建带数据的自定义错误
-func NewErrorWithData(code int, data any, message ...string) *CustomError {
-	err := NewError(code, message...)
-	err.Data = data
-	return err
-}
-
-// IsErrorCode 判断是否是特定错误码
-func IsErrorCode(err error, code int) bool {
-	if customErr, ok := err.(*CustomError); ok {
-		return customErr.Code == code
-	}
-	return false
-}
