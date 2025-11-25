@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"fmt"
+	"log"
 	"net/http"
 	"os"
 	"os/signal"
@@ -12,8 +13,12 @@ import (
 	"github.com/demo/config"
 	"github.com/demo/database"
 	_ "github.com/demo/docs" // Swagger 文档
+	"github.com/demo/middleware"
 	"github.com/demo/models"
+	"github.com/demo/routes"
 	"github.com/demo/utils"
+	swaggerFiles "github.com/swaggo/files"
+	ginSwagger "github.com/swaggo/gin-swagger"
 
 	"github.com/gin-gonic/gin"
 )
@@ -45,64 +50,63 @@ import (
 
 func main() {
 	// 1. 加载配置
-	// if err := config.LoadConfig("config.yaml"); err != nil {
-	// 	log.Fatalf("❌ 加载配置失败: %v", err)
-	// }
+	if err := config.LoadConfig("config.yaml"); err != nil {
+		log.Fatalf("❌ 加载配置失败: %v", err)
+	}
 
-	// cfg := config.GetConfig()
+	cfg := config.GetConfig()
 
-	// // 2. 初始化日志系统
-	// if err := utils.InitLogger(); err != nil {
-	// 	log.Fatalf("❌ 初始化日志失败: %v", err)
-	// }
-	// defer utils.Sync()
-	// utils.LogInfo("✅ 日志系统初始化成功")
+	// 2. 初始化日志系统
+	if err := utils.InitLogger(); err != nil {
+		log.Fatalf("❌ 初始化日志失败: %v", err)
+	}
+	defer utils.Sync()
+	utils.LogInfo("✅ 日志系统初始化成功")
 
-	// // 3. 设置 Gin 模式
-	// gin.SetMode(cfg.Server.Mode)
+	// 3. 设置 Gin 模式
+	gin.SetMode(cfg.Server.Mode)
 
-	// // 4. 初始化数据库连接
-	// if err := database.InitMySQL(); err != nil {
-	// 	utils.LogFatalf("❌ 初始化 MySQL 失败: %v", err)
-	// }
-	// defer database.CloseMySQL()
+	// 4. 初始化数据库连接
+	if err := database.InitMySQL(); err != nil {
+		utils.LogFatalf("❌ 初始化 MySQL 失败: %v", err)
+	}
+	defer database.CloseMySQL()
 
-	// // 5. 初始化 MongoDB 连接（可选）
-	// if err := database.InitMongoDB(); err != nil {
-	// 	utils.LogWarnf("⚠️  初始化 MongoDB 失败: %v（跳过）", err)
-	// } else {
-	// 	defer database.CloseMongoDB()
-	// }
+	// 5. 初始化 MongoDB 连接（可选）
+	if err := database.InitMongoDB(); err != nil {
+		utils.LogWarnf("⚠️  初始化 MongoDB 失败: %v（跳过）", err)
+	} else {
+		defer database.CloseMongoDB()
+	}
 
-	// // 6. 初始化 Redis 连接
-	// if err := database.InitRedis(); err != nil {
-	// 	utils.LogFatalf("❌ 初始化 Redis 失败: %v", err)
-	// }
-	// defer database.CloseRedis()
+	// 6. 初始化 Redis 连接
+	if err := database.InitRedis(); err != nil {
+		utils.LogFatalf("❌ 初始化 Redis 失败: %v", err)
+	}
+	defer database.CloseRedis()
 
-	// // 7. 自动迁移数据库表
-	// if err := autoMigrate(); err != nil {
-	// 	utils.LogFatalf("❌ 数据库迁移失败: %v", err)
-	// }
+	// 7. 自动迁移数据库表
+	if err := autoMigrate(); err != nil {
+		utils.LogFatalf("❌ 数据库迁移失败: %v", err)
+	}
 
-	// // 8. 创建 Gin 引擎
-	// r := gin.New()
+	// 8. 创建 Gin 引擎
+	r := gin.New()
 
-	// // 9. 注册全局中间件
-	// r.Use(middleware.RecoveryMiddleware())     // Panic 恢复
-	// r.Use(middleware.CORSMiddleware())         // 跨域
-	// r.Use(middleware.LoggerMiddleware())       // 日志
-	// r.Use(middleware.RateLimitMiddleware(100)) // 限流：100 req/s
+	// 9. 注册全局中间件
+	r.Use(middleware.RecoveryMiddleware())     // Panic 恢复
+	r.Use(middleware.CORSMiddleware())         // 跨域
+	r.Use(middleware.LoggerMiddleware())       // 日志
+	r.Use(middleware.RateLimitMiddleware(100)) // 限流：100 req/s
 
-	// // 10. 注册 Swagger 文档
-	// r.GET("/swagger/*any", ginSwagger.WrapHandler(swaggerFiles.Handler))
+	// 10. 注册 Swagger 文档
+	r.GET("/swagger/*any", ginSwagger.WrapHandler(swaggerFiles.Handler))
 
-	// // 11. 注册路由
-	// routes.SetupRoutes(r)
+	// 11. 注册路由
+	routes.SetupRoutes(r)
 
 	// 12. 启动服务器（支持优雅关闭）
-	// startServer(r, cfg)
-	main1()
+	startServer(r, cfg)
 }
 
 // autoMigrate 自动迁移数据库表
