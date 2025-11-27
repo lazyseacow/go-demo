@@ -1,6 +1,7 @@
 package utils
 
 import (
+	"fmt"
 	"net/http"
 
 	"github.com/gin-gonic/gin"
@@ -208,9 +209,9 @@ func Error(ctx *gin.Context, err *Response) {
 	})
 }
 
-//func (e *Response) Error() string {
-//	return fmt.Sprintf("code: %d, msg: %s, data: %+v", e.Code, e.Msg, e.Data)
-//}
+func (e *Response) Error() string {
+	return fmt.Sprintf("code: %d, msg: %s, data: %+v", e.Code, e.Msg, e.Data)
+}
 
 func NewError(code int, message ...string) *Response {
 	msg := GetErrorMessage(code)

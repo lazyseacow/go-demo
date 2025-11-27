@@ -7,6 +7,7 @@ import (
 	"github.com/demo/common"
 	"github.com/demo/database"
 	"github.com/demo/models"
+	"github.com/demo/utils"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/mongo"
@@ -28,7 +29,7 @@ func NewArticleService() *ArticleService {
 // getCollection 获取 MongoDB 集合（延迟初始化，检查 MongoDB 是否可用）
 func (s *ArticleService) getCollection() (*mongo.Collection, error) {
 	if database.MongoDB == nil {
-		return nil, common.NewError(common.CodeServiceUnavail, "MongoDB 服务不可用")
+		return nil, utils.NewError(common.CodeServiceUnavail, "MongoDB 服务不可用")
 	}
 	return database.GetMongoCollection("articles"), nil
 }
